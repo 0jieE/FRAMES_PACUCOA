@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Compliance matrix{% endblock %}
+{% block heading %}PACUCOA Area II compliance matrix{% endblock %}
+{% block subheading %}{{ matrix.rows|length }} faculty · overall {{ matrix.overall.rate|floatformat:2 }}% ({{ matrix.overall.complied }} / {{ matrix.overall.total }} applicable items complied){% endblock %}
+{% block actions %}
+  <a class="btn btn-outline-primary" href="{% url 'reports:matrix' %}?mx-department={{ request.GET.department|default:'' }}&mx-format=pdf"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+  <a class="btn btn-outline-success" href="{% url 'reports:matrix' %}?mx-department={{ request.GET.department|default:'' }}&mx-format=xlsx"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+{% endblock %}
+{% block content %}
+{% include "partials/_filter_form.html" %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+  <div class="small d-flex flex-wrap gap-3">
+    <span><span class="legend-swatch cell-ok"></span>Complied</span>
+    <span><i class="bi bi-clock-history text-warning"></i> Expiring ≤ 90 days</span>
+    <span><span class="legend-swatch cell-warn"></span>Incomplete</span>
+    <span><span class="legend-swatch cell-bad"></span>Not Complied</span>
+    <span><span class="legend-swatch cell-na"></span>N/A (not applicable)</span>
+  </div>
+  <input type="search" id="matrix-search" class="form-control form-control-sm" style="max-width:240px" placeholder="Quick find faculty…">
+</div>
+<div class="card">
+  <div class="matrix-wrap">
+    <table class="matrix" id="matrix-table">
+      <thead>
+        <tr class="group-row">
+          <th class="sticky-col" rowspan="1">Faculty</th>
+          {% for g in matrix.groups %}
+            <th colspan="{{ g.columns|length }}" title="{{ g.subarea.title }}">{{ g.subarea.code }} <span class="fw-normal d-none d-xl-inline small">{{ g.subarea.title|truncatechars:24 }}</span></th>
+          {% endfor %}
+          <th class="rate-col">Faculty %</th>
+        </tr>
+        <tr class="code-row">
+          <th class="sticky-col">Name · Dept</th>
+          {% for g in matrix.groups %}{% for c in g.columns %}
+            <th data-bs-toggle="tooltip" title="{{ c.code }}: {{ c.requirement.name }}{% if c.requirement.applicability != 'ALL' %} ({{ c.requirement.get_applicability_display }}){% endif %}">{{ c.code }}</th>
+          {% endfor %}{% endfor %}
+          <th class="rate-col"></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for row in matrix.rows %}
+        <tr data-name="{{ row.faculty.sortable_name|lower }} {{ row.faculty.employee_no|lower }}">
+          <td class="sticky-col"><a class="text-decoration-none" href="{% url 'faculty:detail' row.faculty.pk %}">{{ row.faculty.sortable_name }}</a> <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ row.faculty.department.code }}</span></td>
+          {% for cs in row.cells %}
+            <td class="cell {{ cs|matrix_cell_class }}" title="{% if cs %}{{ cs.get_status_display }}{% if cs.is_expiring %} — expires in {{ cs.days_to_expiry }} day(s){% elif cs.is_expired %} — expired{% endif %}{% else %}Not applicable{% endif %}">
+              {% if cs is None %}<span class="small">N/A</span>
+              {% elif cs.status == "COMPLIED" %}{% if cs.is_expiring %}<i class="bi bi-clock-history"></i>{% else %}<i class="bi bi-check-lg"></i>{% endif %}
+              {% elif cs.status == "INCOMPLETE" %}<i class="bi bi-hourglass-split"></i>
+              {% else %}<i class="bi bi-x-lg"></i>{% endif %}
+            </td>
+          {% endfor %}
+          <td class="rate-col text-{{ row.rate|rate_color }}">{{ row.rate|floatformat:1 }}%</td>
+        </tr>
+      {% empty %}
+        <tr><td class="sticky-col text-muted" colspan="{{ matrix.columns|length|add:2 }}">No faculty match the filters.</td></tr>
+      {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td class="sticky-col">Requirement %</td>
+          {% for t in matrix.column_totals %}<td class="small text-{{ t.rate|rate_color }}" title="{{ t.complied }} / {{ t.total }}">{% if t.total %}{{ t.rate|floatformat:0 }}%{% else %}—{% endif %}</td>{% endfor %}
+          <td class="rate-col">{{ matrix.overall.rate|floatformat:1 }}%</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+<div class="card mt-3">
+  <div class="card-header">Column legend</div>
+  <div class="card-body small">
+    <div class="row">
+      {% for g in matrix.groups %}
+        <div class="col-md-6 col-xl-4 mb-2">
+          <div class="fw-semibold">{{ g.subarea.code }} {{ g.subarea.title }}</div>
+          {% for c in g.columns %}<div><span class="badge bg-light text-dark border">{{ c.code }}</span> {{ c.requirement.name }}</div>{% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

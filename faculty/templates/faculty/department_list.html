@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Departments{% endblock %}
+{% block heading %}Departments{% endblock %}
+{% block actions %}{% if request.user.can_manage_faculty %}<a class="btn btn-primary" href="{% url 'faculty:department_create' %}"><i class="bi bi-plus-lg"></i> New department</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Code</th><th>Name</th><th>Dean</th><th>Faculty</th><th></th></tr></thead>
+      <tbody>
+      {% for d in departments %}
+        <tr>
+          <td class="fw-semibold">{{ d.code }}</td>
+          <td>{{ d.name }}</td>
+          <td>{{ d.dean_name|default:"—" }}</td>
+          <td><a href="{% url 'faculty:list' %}?department={{ d.pk }}">{{ d.faculty_count }}</a></td>
+          <td class="text-end">{% if request.user.can_manage_faculty %}<a class="btn btn-sm btn-outline-primary" href="{% url 'faculty:department_edit' d.pk %}"><i class="bi bi-pencil"></i></a>{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-4">No departments yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

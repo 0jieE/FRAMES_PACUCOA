@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}{{ faculty.full_name }}{% endblock %}
+{% block heading %}{{ faculty.full_name }}{% endblock %}
+{% block subheading %}{{ faculty.employee_no }} · {{ faculty.department.name }} · {{ faculty.get_academic_rank_display }}{% endblock %}
+{% block actions %}
+  {% if is_own_profile %}
+    <a class="btn btn-primary" href="{% url 'documents:upload' %}"><i class="bi bi-cloud-arrow-up"></i> Upload document</a>
+    <a class="btn btn-outline-primary" href="{% url 'reports:faculty_summary' %}?format=pdf"><i class="bi bi-file-earmark-pdf"></i> My summary (PDF)</a>
+  {% elif request.user.is_staff_role %}
+    <a class="btn btn-outline-primary" href="{% url 'reports:faculty_summary' %}?fs-faculty={{ faculty.pk }}&fs-format=pdf"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+    <a class="btn btn-outline-success" href="{% url 'reports:faculty_summary' %}?fs-faculty={{ faculty.pk }}&fs-format=xlsx"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+  {% endif %}
+  {% if request.user.can_manage_faculty or is_own_profile %}
+    <a class="btn btn-outline-secondary" href="{% url 'faculty:edit' faculty.pk %}"><i class="bi bi-pencil"></i> {% if is_own_profile and not request.user.can_manage_faculty %}Edit contact info{% else %}Edit profile{% endif %}</a>
+  {% endif %}
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <div class="text-muted small text-uppercase">Overall Area II compliance</div>
+        <div class="display-5 fw-bold text-{{ summary.overall_rate|rate_color }}">{{ summary.overall_rate|floatformat:2 }}%</div>
+        <div class="small text-muted mb-3">{{ summary.counts.complied }} of {{ summary.counts.applicable }} applicable requirements complied</div>
+        <div class="d-flex justify-content-center flex-wrap gap-2">
+          <span class="badge bg-success">{{ summary.counts.complied }} Complied</span>
+          <span class="badge bg-warning text-dark">{{ summary.counts.incomplete }} Incomplete</span>
+          <span class="badge bg-danger">{{ summary.counts.not_complied }} Not Complied</span>
+          {% if summary.counts.expiring %}<span class="badge bg-light text-dark border"><i class="bi bi-clock-history text-warning"></i> {{ summary.counts.expiring }} expiring</span>{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header">Compliance by sub-area</div>
+      <div class="card-body">
+        {% for s in summary.subarea_rates %}
+          <div class="mb-2">
+            <div class="d-flex justify-content-between small"><span><strong>{{ s.code }}</strong> {{ s.title }}</span><span class="fw-semibold">{{ s.rate|floatformat:0 }}%</span></div>
+            <div class="rate-bar"><span class="bg-{{ s.rate|rate_color }}" style="width:{{ s.rate|floatformat:0 }}%"></span></div>
+          </div>
+        {% empty %}<p class="text-muted small mb-0">No applicable requirements.</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header">Profile</div>
+      <div class="card-body small">
+        <dl class="row mb-0">
+          <dt class="col-5">Department</dt><dd class="col-7">{{ faculty.department.code }}</dd>
+          <dt class="col-5">Employment</dt><dd class="col-7">{{ faculty.get_employment_status_display }}</dd>
+          <dt class="col-5">Faculty type</dt><dd class="col-7">{{ faculty.get_faculty_type_display }}</dd>
+          <dt class="col-5">Highest degree</dt><dd class="col-7">{{ faculty.get_highest_degree_display }}{% if faculty.has_foreign_degree %} (foreign){% endif %}</dd>
+          <dt class="col-5">Licensure program</dt><dd class="col-7">{{ faculty.teaches_licensure_program|yesno:"Yes,No" }}</dd>
+          <dt class="col-5">On study leave</dt><dd class="col-7">{{ faculty.on_study_leave|yesno:"Yes,No" }}</dd>
+          <dt class="col-5">Date hired</dt><dd class="col-7">{{ faculty.date_hired|date:"M d, Y" }}</dd>
+          <dt class="col-5">Sex</dt><dd class="col-7">{{ faculty.get_sex_display }}</dd>
+          <dt class="col-5">Contact no.</dt><dd class="col-7">{{ faculty.contact_no|default:"—" }}</dd>
+          <dt class="col-5">Email</dt><dd class="col-7 text-break">{{ faculty.user.email|default:"—" }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between"><span><i class="bi bi-list-check"></i> Requirement checklist</span><span class="small text-muted fw-normal">N/A items are excluded from the rate</span></div>
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead><tr><th>Sub-area</th><th>Requirement</th><th>Status</th><th>Current document</th><th>Expiry</th><th class="text-end"></th></tr></thead>
+      <tbody>
+      {% for item in summary.checklist %}
+        {% with req=item.requirement cs=item.status %}
+        <tr class="{% if not item.applicable %}text-muted{% endif %}">
+          <td class="text-nowrap"><span class="badge bg-primary-subtle text-primary-emphasis">{{ req.subarea.code }}</span></td>
+          <td>
+            {{ req.name }}
+            <div class="small text-muted">{{ req.documentary_basis|truncatechars:110 }}</div>
+          </td>
+          <td class="text-nowrap">{% status_badge cs %}</td>
+          <td class="small">
+            {% if cs.document %}
+              <a href="{% url 'documents:detail' cs.document.pk %}">v{{ cs.document.version_no }}</a> {% doc_status_badge cs.document %}
+              {% with last=cs.document.validations.first %}{% if last and last.remarks and cs.document.status != "APPROVED" %}<div class="text-danger mt-1"><i class="bi bi-chat-left-text"></i> {{ last.remarks }}</div>{% endif %}{% endwith %}
+            {% elif item.applicable %}<span class="text-muted">No upload</span>{% else %}—{% endif %}
+          </td>
+          <td class="small text-nowrap">{% if cs.document.expiry_date and req.has_expiry %}{{ cs.document.expiry_date|date:"M d, Y" }}{% else %}—{% endif %}</td>
+          <td class="text-end text-nowrap">
+            {% if is_own_profile and item.applicable %}
+              {% if not cs.document %}
+                <a class="btn btn-sm btn-primary" href="{% url 'documents:upload' %}?requirement={{ req.pk }}">Upload</a>
+              {% elif cs.document.status != "PENDING" %}
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'documents:upload' %}?requirement={{ req.pk }}">{% if cs.document.status == "APPROVED" %}Update{% else %}Re-submit{% endif %}</a>
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% endwith %}
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">Recent uploads</div>
+  <ul class="list-group list-group-flush">
+    {% for d in recent_documents %}
+      <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><a href="{% url 'documents:detail' d.pk %}">{{ d.requirement.name }}</a> <span class="small text-muted">v{{ d.version_no }} · {{ d.uploaded_at|date:"M d, Y" }}{% if not d.is_current %} · superseded{% endif %}</span></span>
+        {% doc_status_badge d %}
+      </li>
+    {% empty %}
+      <li class="list-group-item text-muted small">No documents uploaded yet.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

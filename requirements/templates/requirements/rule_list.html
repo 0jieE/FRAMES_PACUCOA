@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Requirement rules{% endblock %}
+{% block heading %}PACUCOA Area II requirement rules{% endblock %}
+{% block subheading %}{% if request.user.is_sysadmin %}Changes take effect immediately and trigger re-evaluation of every faculty member.{% else %}Read-only view. Only the System Administrator can change rules.{% endif %}{% endblock %}
+{% block actions %}
+  {% if request.user.is_sysadmin %}
+    <a class="btn btn-outline-primary" href="{% url 'requirements:subarea_create' %}"><i class="bi bi-plus-lg"></i> Sub-area</a>
+    <a class="btn btn-primary" href="{% url 'requirements:requirement_create' %}"><i class="bi bi-plus-lg"></i> Requirement</a>
+  {% endif %}
+{% endblock %}
+{% block content %}
+{% for sa in subareas %}
+<div class="card mb-3">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span><span class="badge bg-primary me-1">{{ sa.code }}</span> {{ sa.title }} <span class="small text-muted fw-normal">· {{ sa.requirement_count }} requirement{{ sa.requirement_count|pluralize }}</span></span>
+    {% if request.user.is_sysadmin %}
+      <span class="d-flex gap-1">
+        <a class="btn btn-sm btn-outline-primary" href="{% url 'requirements:requirement_create' %}?subarea={{ sa.pk }}"><i class="bi bi-plus"></i> Add</a>
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'requirements:subarea_edit' sa.pk %}"><i class="bi bi-pencil"></i></a>
+        <a class="btn btn-sm btn-outline-danger" href="{% url 'requirements:subarea_delete' sa.pk %}"><i class="bi bi-trash"></i></a>
+      </span>
+    {% endif %}
+  </div>
+  {% if sa.description %}<div class="px-3 pt-2 small text-muted">{{ sa.description }}</div>{% endif %}
+  <div class="table-responsive">
+    <table class="table table-sm mb-0 align-middle">
+      <thead><tr><th>#</th><th>Requirement</th><th>Applicability</th><th>Mandatory</th><th>Expiry</th><th>Status</th>{% if request.user.is_sysadmin %}<th></th>{% endif %}</tr></thead>
+      <tbody>
+      {% for r in sa.requirements.all %}
+        <tr class="{% if not r.is_active %}text-muted{% endif %}">
+          <td class="small">{{ r.sort_order }}</td>
+          <td>{{ r.name }}<div class="small text-muted">{{ r.documentary_basis }}</div></td>
+          <td class="small">{{ r.get_applicability_display }}</td>
+          <td class="small">{{ r.mandatory_label }}</td>
+          <td>{% if r.has_expiry %}<i class="bi bi-clock-history text-warning" title="Has expiry date"></i> Yes{% else %}No{% endif %}</td>
+          <td>{% if r.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
+          {% if request.user.is_sysadmin %}
+          <td class="text-end text-nowrap">
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'requirements:requirement_edit' r.pk %}"><i class="bi bi-pencil"></i></a>
+            <form class="d-inline" method="post" action="{% url 'requirements:requirement_toggle' r.pk %}" data-confirm="{% if r.is_active %}Deactivate{% else %}Activate{% endif %} this requirement? All faculty will be re-evaluated.">{% csrf_token %}
+              <button class="btn btn-sm btn-outline-{% if r.is_active %}warning{% else %}success{% endif %}" title="{% if r.is_active %}Deactivate{% else %}Activate{% endif %}"><i class="bi bi-power"></i></button>
+            </form>
+            <a class="btn btn-sm btn-outline-danger" href="{% url 'requirements:requirement_delete' r.pk %}"><i class="bi bi-trash"></i></a>
+          </td>
+          {% endif %}
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="text-muted small text-center py-3">No requirements in this sub-area.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% empty %}
+<div class="card"><div class="card-body text-muted">No sub-areas configured yet.</div></div>
+{% endfor %}
+{% endblock %}

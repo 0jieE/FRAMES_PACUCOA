@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Documents{% endblock %}
+{% block heading %}{% if request.user.is_faculty %}My documents{% else %}Documents{% endif %}{% endblock %}
+{% block subheading %}Current versions are shown by default; tick "Include old versions" to see the full history.{% endblock %}
+{% block actions %}{% if request.user.is_faculty %}<a class="btn btn-primary" href="{% url 'documents:upload' %}"><i class="bi bi-cloud-arrow-up"></i> Upload document</a>{% endif %}{% endblock %}
+{% block content %}
+{% include "partials/_filter_form.html" %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr>{% if not request.user.is_faculty %}<th>Faculty</th>{% endif %}<th>Requirement</th><th>Version</th><th>Status</th><th>Issued</th><th>Expiry</th><th>Uploaded</th><th></th></tr></thead>
+      <tbody>
+      {% for d in page_obj %}
+        <tr>
+          {% if not request.user.is_faculty %}<td><a href="{% url 'faculty:detail' d.faculty_id %}">{{ d.faculty.sortable_name }}</a><div class="small text-muted">{{ d.faculty.department.code }}</div></td>{% endif %}
+          <td><span class="badge bg-primary-subtle text-primary-emphasis">{{ d.requirement.subarea.code }}</span> {{ d.requirement.name }}</td>
+          <td class="small">v{{ d.version_no }}{% if not d.is_current %} <span class="text-muted">(old)</span>{% endif %}</td>
+          <td>{% doc_status_badge d %}</td>
+          <td class="small text-nowrap">{{ d.date_issued|date:"M d, Y"|default:"—" }}</td>
+          <td class="small text-nowrap">{% if d.expiry_date %}<span class="{% if d.is_expired %}text-danger fw-semibold{% endif %}">{{ d.expiry_date|date:"M d, Y" }}</span>{% else %}—{% endif %}</td>
+          <td class="small text-nowrap text-muted">{{ d.uploaded_at|date:"M d, Y" }}</td>
+          <td class="text-end text-nowrap">
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'documents:detail' d.pk %}">Open</a>
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'documents:download' d.pk %}" title="Download"><i class="bi bi-download"></i></a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8" class="text-center text-muted py-4">No documents found.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include "partials/_pagination.html" %}
+{% endblock %}

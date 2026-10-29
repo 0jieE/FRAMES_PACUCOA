@@ -1,0 +1,22 @@
+<div class="col-md-6 col-xl-4">
+  <div class="card h-100">
+    <div class="card-body d-flex flex-column">
+      <h2 class="h6 fw-bold" style="color:var(--frames-navy)"><i class="bi {{ icon }} me-1"></i> {{ title }}</h2>
+      <p class="small text-muted">{{ text }}</p>
+      <form method="get" action="{% url action %}" class="mt-auto">
+        {% for field in form.visible_fields %}
+          {% if field.name != "format" %}
+            <div class="mb-2">
+              <label class="form-label small mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+            </div>
+          {% endif %}
+        {% endfor %}
+        <div class="d-flex gap-2 mt-3">
+          <button class="btn btn-primary btn-sm" type="submit" name="{{ form.prefix }}-format" value="pdf"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+          <button class="btn btn-success btn-sm" type="submit" name="{{ form.prefix }}-format" value="xlsx"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

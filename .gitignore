@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.env
+venv/
+.venv/
+staticfiles/
+private_media/*
+!private_media/.gitkeep
+*.sqlite3
+.idea/
+.vscode/
+*.log
+*.dump
+.DS_Store
+node_modules/

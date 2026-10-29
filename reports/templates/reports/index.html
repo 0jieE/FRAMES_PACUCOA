@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block heading %}Reports{% endblock %}
+{% block subheading %}PDF (ReportLab) and Excel (openpyxl) exports with school name, report title, filters, date and user.{% endblock %}
+{% block content %}
+<div class="row g-3">
+  {% include "reports/_report_card.html" with form=faculty_form action="reports:faculty_summary" icon="bi-person-lines-fill" title="Faculty compliance summary" text="One faculty member, all requirements, per sub-area rates and checklist." %}
+  {% include "reports/_report_card.html" with form=matrix_form action="reports:matrix" icon="bi-grid-3x3-gap" title="Area II compliance matrix" text="Faculty × requirement matrix grouped by sub-area, with row and column totals." %}
+  {% include "reports/_report_card.html" with form=missing_form action="reports:missing" icon="bi-exclamation-diamond" title="Missing-document report" text="Every applicable requirement that is not complied or still incomplete, with the reason." %}
+  {% include "reports/_report_card.html" with form=expiring_form action="reports:expiring" icon="bi-clock-history" title="Expiring / expired credentials" text="Credentials that are expired or expire within 30, 60, or 90 days." %}
+  {% include "reports/_report_card.html" with form=audit_form action="reports:audit_summary" icon="bi-clipboard-data" title="Area II audit summary" text="Compliance rates per sub-area and per department for accreditation visits." %}
+</div>
+{% endblock %}

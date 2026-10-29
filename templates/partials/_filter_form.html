@@ -1,0 +1,18 @@
+<form method="get" class="card card-body filter-card mb-3">
+  <div class="row g-2 align-items-end">
+    {% for field in form.visible_fields %}
+      <div class="col-6 col-md-4 col-xl">
+        {% if field.widget_type == 'checkbox' %}
+          <div class="form-check mt-4">{{ field }} <label class="form-check-label small" for="{{ field.id_for_label }}">{{ field.label }}</label></div>
+        {% else %}
+          <label class="form-label small mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+        {% endif %}
+      </div>
+    {% endfor %}
+    <div class="col-12 col-md-auto d-flex gap-2">
+      <button class="btn btn-primary" type="submit"><i class="bi bi-funnel"></i> Filter</button>
+      <a class="btn btn-outline-secondary" href="{{ request.path }}">Reset</a>
+    </div>
+  </div>
+</form>

@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block heading %}Executive dashboard{% endblock %}
+{% block subheading %}PACUCOA Area II — Faculty · {% if selected_department %}{{ selected_department.name }}{% else %}All departments{% endif %} · as of {{ today|date:"F d, Y" }}{% endblock %}
+{% block actions %}
+  <form method="get" class="d-flex gap-2">
+    <select name="department" class="form-select" onchange="this.form.submit()" {% if request.user.scope_department %}disabled{% endif %}>
+      {% if not request.user.scope_department %}<option value="">All departments</option>{% endif %}
+      {% for d in departments %}<option value="{{ d.pk }}" {% if selected_department and d.pk == selected_department.pk %}selected{% endif %}>{{ d.code }} — {{ d.name }}</option>{% endfor %}
+    </select>
+  </form>
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card kpi-card h-100"><div class="card-body">
+      <div class="d-flex justify-content-between"><div class="kpi-label">Area II compliance</div><i class="bi bi-graph-up-arrow kpi-icon"></i></div>
+      <div class="kpi-value text-{{ kpis.overall_rate|rate_color }}">{{ kpis.overall_rate|floatformat:2 }}%</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <a class="text-decoration-none" href="{% url 'faculty:list' %}{% if selected_department %}?department={{ selected_department.pk }}{% endif %}">
+    <div class="card kpi-card kpi-info h-100"><div class="card-body">
+      <div class="d-flex justify-content-between"><div class="kpi-label">Faculty</div><i class="bi bi-people kpi-icon"></i></div>
+      <div class="kpi-value">{{ kpis.faculty_count }}</div>
+    </div></div></a>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <a class="text-decoration-none" href="{% url 'faculty:list' %}?compliance=FULL{% if selected_department %}&department={{ selected_department.pk }}{% endif %}">
+    <div class="card kpi-card kpi-success h-100"><div class="card-body">
+      <div class="d-flex justify-content-between"><div class="kpi-label">Fully compliant</div><i class="bi bi-award kpi-icon"></i></div>
+      <div class="kpi-value">{{ kpis.fully_compliant }}</div>
+    </div></div></a>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <a class="text-decoration-none" href="{% url 'documents:validation_queue' %}{% if selected_department %}?department={{ selected_department.pk }}{% endif %}">
+    <div class="card kpi-card kpi-warning h-100"><div class="card-body">
+      <div class="d-flex justify-content-between"><div class="kpi-label">Pending validations</div><i class="bi bi-inbox kpi-icon"></i></div>
+      <div class="kpi-value">{{ kpis.pending_validations }}</div>
+    </div></div></a>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <a class="text-decoration-none" href="{% url 'compliance:expiring' %}?window=90{% if selected_department %}&department={{ selected_department.pk }}{% endif %}">
+    <div class="card kpi-card kpi-warning h-100"><div class="card-body">
+      <div class="d-flex justify-content-between"><div class="kpi-label">Expiring ≤ 90 days</div><i class="bi bi-clock-history kpi-icon"></i></div>
+      <div class="kpi-value">{{ kpis.expiring_90 }}</div>
+    </div></div></a>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <a class="text-decoration-none" href="{% url 'compliance:expiring' %}?window=expired{% if selected_department %}&department={{ selected_department.pk }}{% endif %}">
+    <div class="card kpi-card kpi-danger h-100"><div class="card-body">
+      <div class="d-flex justify-content-between"><div class="kpi-label">Expired</div><i class="bi bi-exclamation-octagon kpi-icon"></i></div>
+      <div class="kpi-value">{{ kpis.expired }}</div>
+    </div></div></a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-5">
+    <div class="card h-100"><div class="card-header">Compliance by sub-area</div>
+      <div class="card-body"><div class="chart-box"><canvas id="chart-subarea"></canvas></div></div></div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card h-100"><div class="card-header">Compliance by department</div>
+      <div class="card-body"><div class="chart-box"><canvas id="chart-department"></canvas></div></div></div>
+  </div>
+  <div class="col-lg-3">
+    <div class="card h-100"><div class="card-header">Status distribution</div>
+      <div class="card-body"><div class="chart-box"><canvas id="chart-status"></canvas></div></div></div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-7">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between"><span>Top 10 most-missing requirements</span><a class="small fw-normal" href="{% url 'reports:index' %}">Missing-document report</a></div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>#</th><th>Requirement</th><th class="text-end">Not complied</th><th class="text-end">Incomplete</th><th class="text-end">Applicable</th><th style="min-width:110px">Missing</th></tr></thead>
+          <tbody>
+          {% for r in most_missing %}
+            <tr>
+              <td class="small text-muted">{{ forloop.counter }}</td>
+              <td class="small"><span class="badge bg-primary-subtle text-primary-emphasis">{{ r.requirement__subarea__code }}</span> {{ r.requirement__name }}</td>
+              <td class="text-end fw-semibold text-danger">{{ r.not_complied }}</td>
+              <td class="text-end text-warning-emphasis">{{ r.incomplete }}</td>
+              <td class="text-end">{{ r.applicable }}</td>
+              <td><div class="d-flex align-items-center gap-2"><div class="rate-bar flex-grow-1"><span class="bg-danger" style="width:{{ r.missing_rate|floatformat:0 }}%"></span></div><span class="small">{{ r.missing_rate|floatformat:0 }}%</span></div></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6" class="text-center text-muted py-3">Nothing missing. 🎉</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-5">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between"><span>Soonest expiring credentials</span><a class="small fw-normal" href="{% url 'compliance:expiring' %}">View all</a></div>
+      <ul class="list-group list-group-flush">
+        {% for cs in soonest %}
+          <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
+            <div class="small">
+              <a href="{% url 'faculty:detail' cs.faculty_id %}" class="fw-semibold">{{ cs.faculty.sortable_name }}</a> <span class="text-muted">· {{ cs.faculty.department.code }}</span>
+              <div class="text-muted">{{ cs.requirement.subarea.code }} {{ cs.requirement.name }} · {{ cs.document.expiry_date|date:"M d, Y" }}</div>
+            </div>
+            <span class="badge {% if cs.days_to_expiry <= 30 %}bg-danger{% elif cs.days_to_expiry <= 60 %}bg-warning text-dark{% else %}bg-info text-dark{% endif %} text-nowrap">{{ cs.days_to_expiry }} days</span>
+          </li>
+        {% empty %}
+          <li class="list-group-item text-muted small">No credentials expiring within 90 days.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{{ charts|json_script:"chart-data" }}
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  const data = JSON.parse(document.getElementById("chart-data").textContent);
+  const primary = "#6a2fb0";
+  const rateColor = (v) => (v >= 80 ? "#198754" : v >= 50 ? "#e0a800" : "#dc3545");
+  const pctAxis = { beginAtZero: true, max: 100, ticks: { callback: (v) => v + "%" } };
+  const pctTooltip = { callbacks: { label: (ctx) => " " + ctx.parsed[ctx.chart.options.indexAxis === "y" ? "x" : "y"].toFixed(2) + "%" } };
+
+  new Chart(document.getElementById("chart-subarea"), {
+    type: "bar",
+    data: { labels: data.subarea.short, datasets: [{ label: "Compliance %", data: data.subarea.rates, backgroundColor: data.subarea.rates.map(rateColor), borderRadius: 4 }] },
+    options: {
+      maintainAspectRatio: false,
+      scales: { y: pctAxis },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { title: (items) => data.subarea.labels[items[0].dataIndex], label: pctTooltip.callbacks.label } } },
+    },
+  });
+
+  new Chart(document.getElementById("chart-department"), {
+    type: "bar",
+    data: { labels: data.department.labels, datasets: [{ label: "Compliance %", data: data.department.rates, backgroundColor: primary, borderRadius: 4 }] },
+    options: {
+      indexAxis: "y",
+      maintainAspectRatio: false,
+      scales: { x: pctAxis },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { title: (items) => data.department.names[items[0].dataIndex], label: pctTooltip.callbacks.label } } },
+    },
+  });
+
+  new Chart(document.getElementById("chart-status"), {
+    type: "doughnut",
+    data: { labels: data.status.labels, datasets: [{ data: data.status.values, backgroundColor: ["#198754", "#75b798", "#ffc107", "#dc3545"], borderWidth: 1 }] },
+    options: { maintainAspectRatio: false, cutout: "60%", plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } } } },
+  });
+})();
+</script>
+{% endblock %}

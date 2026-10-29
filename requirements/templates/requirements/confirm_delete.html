@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Delete{% endblock %}
+{% block heading %}Delete {{ object }}?{% endblock %}
+{% block content %}
+<div class="card border-danger" style="max-width:720px"><div class="card-body">
+  <p>This permanently removes <strong>{{ object }}</strong> and re-evaluates compliance for all faculty.</p>
+  <p class="small text-muted">Items that already have uploaded documents (or sub-areas that still have requirements) are protected — deactivate them instead.</p>
+  <form method="post" data-confirm="Delete {{ object }}? This cannot be undone.">{% csrf_token %}
+    <button class="btn btn-danger" type="submit"><i class="bi bi-trash"></i> Delete</button>
+    <a class="btn btn-outline-secondary" href="{% url 'requirements:list' %}">Cancel</a>
+  </form>
+</div></div>
+{% endblock %}

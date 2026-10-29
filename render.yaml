@@ -1,0 +1,45 @@
+# Render Blueprint for FRAMES (https://render.com/docs/blueprint-spec)
+# The PostgreSQL database already exists on Render, so it is NOT declared here:
+# paste its *Internal Database URL* into DATABASE_URL when Render asks for it.
+services:
+  - type: web
+    name: frames-pacucoa
+    runtime: python
+    region: singapore          # same region as the database
+    plan: free
+    branch: main
+    buildCommand: bash ./build.sh
+    startCommand: gunicorn frames_project.wsgi:application --workers 2 --timeout 120
+    healthCheckPath: /login/
+    envVars:
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false            # Render dashboard > db_pacucoa > Connections > Internal Database URL
+      - key: FIELD_ENCRYPTION_KEY
+        sync: false            # MUST be the same key as in your local .env, or documents cannot be decrypted
+      - key: PRIVATE_STORAGE
+        value: database
+      - key: EMAIL_BACKEND
+        value: django.core.mail.backends.console.EmailBackend
+      - key: DEFAULT_FROM_EMAIL
+        value: FRAMES <no-reply@cdk.edu.ph>
+
+  # Optional daily expiry alerts. Render cron jobs are a paid service type;
+  # uncomment to enable (runs 06:00 Asia/Manila = 22:00 UTC).
+  # - type: cron
+  #   name: frames-check-expirations
+  #   runtime: python
+  #   region: singapore
+  #   schedule: "0 22 * * *"
+  #   buildCommand: pip install -r requirements.txt
+  #   startCommand: python manage.py check_expirations
+  #   envVars:
+  #     - key: DATABASE_URL
+  #       sync: false
+  #     - key: FIELD_ENCRYPTION_KEY
+  #       sync: false
+  #     - key: SECRET_KEY
+  #       sync: false

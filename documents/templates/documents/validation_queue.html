@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Validation queue{% endblock %}
+{% block heading %}Validation queue{% endblock %}
+{% block subheading %}Pending documents, oldest first{% if request.user.scope_department %} · {{ request.user.scope_department.code }} only{% endif %}{% if not request.user.can_validate %} · read-only (your role cannot validate){% endif %}{% endblock %}
+{% block content %}
+{% include "partials/_filter_form.html" %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Submitted</th><th>Faculty</th><th>Sub-area</th><th>Requirement</th><th>Version</th><th>Expiry</th><th></th></tr></thead>
+      <tbody>
+      {% for d in page_obj %}
+        <tr>
+          <td class="small text-nowrap">{{ d.uploaded_at|date:"M d, Y" }}<div class="text-muted">{{ d.uploaded_at|timesince }} ago</div></td>
+          <td><a href="{% url 'faculty:detail' d.faculty_id %}">{{ d.faculty.sortable_name }}</a><div class="small text-muted">{{ d.faculty.department.code }}</div></td>
+          <td><span class="badge bg-primary-subtle text-primary-emphasis">{{ d.requirement.subarea.code }}</span></td>
+          <td>{{ d.requirement.name }}</td>
+          <td class="small">v{{ d.version_no }}{% if d.version_no > 1 %} <span class="badge bg-light text-dark border">re-submission</span>{% endif %}</td>
+          <td class="small text-nowrap">{{ d.expiry_date|date:"M d, Y"|default:"—" }}</td>
+          <td class="text-end">
+            {% if request.user.can_validate %}<a class="btn btn-sm btn-primary" href="{% url 'documents:validate' d.pk %}"><i class="bi bi-patch-check"></i> Review</a>
+            {% else %}<a class="btn btn-sm btn-outline-primary" href="{% url 'documents:detail' d.pk %}">Open</a>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-inbox fs-3 d-block"></i>No documents waiting for validation.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include "partials/_pagination.html" %}
+{% endblock %}

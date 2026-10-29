@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ faculty.full_name }}{% endblock %}
+{% block heading %}{% if full_edit %}Edit faculty profile{% else %}Edit contact information{% endif %}{% endblock %}
+{% block subheading %}{{ faculty.full_name }} · {{ faculty.employee_no }}{% endblock %}
+{% block content %}
+<div class="card"><div class="card-body">
+  {% if full_edit %}<div class="alert alert-info small"><i class="bi bi-info-circle"></i> Changing faculty type, licensure, foreign degree or study-leave flags changes which requirements apply; compliance is re-evaluated on save.</div>{% endif %}
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "partials/_form_fields.html" with col="col-md-6 col-xl-4" %}
+    <div class="mt-4 d-flex gap-2">
+      <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> Save</button>
+      <a class="btn btn-outline-secondary" href="{% url 'faculty:detail' faculty.pk %}">Cancel</a>
+    </div>
+  </form>
+</div></div>
+{% endblock %}

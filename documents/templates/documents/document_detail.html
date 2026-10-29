@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}{{ document.requirement.name }}{% endblock %}
+{% block heading %}{{ document.requirement.name }}{% endblock %}
+{% block subheading %}{{ document.requirement.subarea }} · <a href="{% url 'faculty:detail' document.faculty_id %}">{{ document.faculty.full_name }}</a> ({{ document.faculty.department.code }}){% endblock %}
+{% block actions %}
+  {% if can_validate %}<a class="btn btn-primary" href="{% url 'documents:validate' document.pk %}"><i class="bi bi-patch-check"></i> Validate</a>{% endif %}
+  {% if is_owner and document.is_current and document.status != "PENDING" %}<a class="btn btn-outline-primary" href="{% url 'documents:upload' %}?requirement={{ document.requirement_id }}"><i class="bi bi-arrow-repeat"></i> Upload new version</a>{% endif %}
+  <a class="btn btn-outline-secondary" href="{% url 'documents:download' document.pk %}"><i class="bi bi-download"></i> Download</a>
+{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-xl-7">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between"><span>Preview · v{{ document.version_no }}</span><span class="small text-muted fw-normal">{{ document.original_filename }}</span></div>
+      <div class="card-body">
+        {% if document.is_pdf %}
+          <iframe class="preview-frame" src="{% url 'documents:preview' document.pk %}" title="Document preview"></iframe>
+        {% elif document.is_image %}
+          <img class="preview-image" src="{% url 'documents:preview' document.pk %}" alt="{{ document.original_filename }}">
+        {% else %}
+          <p class="text-muted">Preview not available. Use Download.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-5">
+    <div class="card mb-3">
+      <div class="card-header">Details</div>
+      <div class="card-body small">
+        <dl class="row mb-0">
+          <dt class="col-5">Document status</dt><dd class="col-7">{% doc_status_badge document %}{% if not document.is_current %} <span class="badge bg-light text-dark border">superseded</span>{% endif %}</dd>
+          <dt class="col-5">Compliance</dt><dd class="col-7">{% if compliance %}{% status_badge compliance %}{% else %}{% status_code_badge "NA" %}{% endif %}</dd>
+          <dt class="col-5">Version</dt><dd class="col-7">{{ document.version_no }}{% if document.is_current %} (current){% endif %}</dd>
+          <dt class="col-5">Date issued</dt><dd class="col-7">{{ document.date_issued|date:"M d, Y"|default:"—" }}</dd>
+          <dt class="col-5">Expiry date</dt><dd class="col-7">{% if document.expiry_date %}{{ document.expiry_date|date:"M d, Y" }}{% if document.is_expired %} <span class="text-danger fw-semibold">(expired)</span>{% else %} ({{ document.days_to_expiry }} days left){% endif %}{% else %}—{% endif %}</dd>
+          <dt class="col-5">File</dt><dd class="col-7">{{ document.file_type }} · {{ document.file_size|filesizeformat }}</dd>
+          <dt class="col-5">Uploaded</dt><dd class="col-7">{{ document.uploaded_at|date:"M d, Y H:i" }}{% if document.uploaded_by %} by {{ document.uploaded_by }}{% endif %}</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="card mb-3">
+      <div class="card-header">Requirement</div>
+      <div class="card-body small">
+        <p class="mb-1">{{ document.requirement.documentary_basis|default:"—" }}</p>
+        <p class="mb-0 text-muted">Applicability: {{ document.requirement.get_applicability_display }} · Mandatory: {{ document.requirement.mandatory_label }} · Expiry: {{ document.requirement.has_expiry|yesno:"Yes,No" }}</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">Version &amp; validation history</div>
+      <div class="card-body">
+        <ul class="timeline mb-0">
+          {% for v in versions %}
+            <li>
+              <div class="d-flex justify-content-between flex-wrap gap-1">
+                <span class="fw-semibold">{% if v.pk == document.pk %}v{{ v.version_no }}{% else %}<a href="{% url 'documents:detail' v.pk %}">v{{ v.version_no }}</a>{% endif %} · {{ v.original_filename|truncatechars:40 }}</span>
+                {% doc_status_badge v %}
+              </div>
+              <div class="small text-muted">Uploaded {{ v.uploaded_at|date:"M d, Y H:i" }}{% if v.is_current %} · current{% endif %}</div>
+              {% for val in v.validations.all %}
+                <div class="small mt-1 p-2 rounded bg-light">
+                  <strong>{{ val.get_decision_display }}</strong> by {{ val.validated_by|default:"—" }} · {{ val.validated_at|date:"M d, Y H:i" }}
+                  {% if val.remarks %}<div class="text-body-secondary">“{{ val.remarks }}”</div>{% endif %}
+                </div>
+              {% endfor %}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

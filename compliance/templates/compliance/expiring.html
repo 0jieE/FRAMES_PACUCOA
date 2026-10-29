@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Expiring credentials{% endblock %}
+{% block heading %}Expiring credentials{% endblock %}
+{% block subheading %}{{ total }} credential{{ total|pluralize }} · alerts go out automatically at 90, 60 and 30 days (run <code>check_expirations</code> daily){% endblock %}
+{% block actions %}
+  <a class="btn btn-outline-primary" href="{% url 'reports:expiring' %}?ex-window={{ window }}&ex-department={{ request.GET.department|default:'' }}&ex-format=pdf"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+  <a class="btn btn-outline-success" href="{% url 'reports:expiring' %}?ex-window={{ window }}&ex-department={{ request.GET.department|default:'' }}&ex-format=xlsx"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+{% endblock %}
+{% block content %}
+<ul class="nav nav-pills mb-3 small">
+  {% for value, label in form.fields.window.choices %}
+    <li class="nav-item"><a class="nav-link {% if value == window %}active{% endif %}" href="?{% url_replace window=value page=None %}">{{ label }}</a></li>
+  {% endfor %}
+</ul>
+{% include "partials/_filter_form.html" %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Faculty</th><th>Dept</th><th>Requirement</th><th>Issued</th><th>Expiry</th><th>Days</th><th></th></tr></thead>
+      <tbody>
+      {% for d in page_obj %}
+        <tr>
+          <td><a href="{% url 'faculty:detail' d.faculty_id %}">{{ d.faculty.sortable_name }}</a></td>
+          <td><span class="badge bg-secondary-subtle text-secondary-emphasis">{{ d.faculty.department.code }}</span></td>
+          <td><span class="badge bg-primary-subtle text-primary-emphasis">{{ d.requirement.subarea.code }}</span> {{ d.requirement.name }}</td>
+          <td class="small text-nowrap">{{ d.date_issued|date:"M d, Y"|default:"—" }}</td>
+          <td class="small text-nowrap">{{ d.expiry_date|date:"M d, Y" }}</td>
+          <td class="text-nowrap">
+            {% with days=d.days_to_expiry %}
+              {% if days < 0 %}<span class="badge bg-danger">Expired</span>
+              {% elif days <= 30 %}<span class="badge bg-danger-subtle text-danger-emphasis">{{ days }} days</span>
+              {% elif days <= 60 %}<span class="badge bg-warning text-dark">{{ days }} days</span>
+              {% else %}<span class="badge bg-info-subtle text-info-emphasis">{{ days }} days</span>{% endif %}
+            {% endwith %}
+          </td>
+          <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'documents:detail' d.pk %}">Open</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4">No credentials in this window.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include "partials/_pagination.html" %}
+{% endblock %}

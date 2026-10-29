@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Requirement{% endblock %}
+{% block heading %}{% if object %}Edit requirement{% else %}New requirement{% endif %}{% endblock %}
+{% block subheading %}Saving re-evaluates compliance for all faculty.{% endblock %}
+{% block content %}
+<div class="card" style="max-width:920px"><div class="card-body">
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "partials/_form_fields.html" %}
+    <div class="alert alert-light border small mt-3 mb-0">
+      <strong>Applicability:</strong> requirements that do not apply to a faculty member are shown as N/A and excluded from both the numerator and denominator of the compliance rate.
+    </div>
+    <div class="mt-4 d-flex gap-2">
+      <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> Save</button>
+      <a class="btn btn-outline-secondary" href="{% url 'requirements:list' %}">Cancel</a>
+    </div>
+  </form>
+</div></div>
+{% endblock %}

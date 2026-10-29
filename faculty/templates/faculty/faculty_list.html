@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Faculty{% endblock %}
+{% block heading %}Faculty 201 records{% endblock %}
+{% block subheading %}{{ total }} faculty member{{ total|pluralize }}{% if request.user.scope_department %} in {{ request.user.scope_department.code }}{% endif %}{% endblock %}
+{% block actions %}
+  {% if request.user.can_manage_faculty %}<a class="btn btn-primary" href="{% url 'faculty:create' %}"><i class="bi bi-person-plus"></i> New faculty</a>{% endif %}
+{% endblock %}
+{% block content %}
+{% include "partials/_filter_form.html" %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Employee no.</th><th>Name</th><th>Dept</th><th>Rank</th><th>Status</th><th>Degree</th><th style="min-width:160px">Compliance</th><th></th></tr></thead>
+      <tbody>
+      {% for f in page_obj %}
+        <tr>
+          <td class="small text-muted text-nowrap">{{ f.employee_no }}</td>
+          <td>
+            <a class="fw-semibold text-decoration-none" href="{% url 'faculty:detail' f.pk %}">{{ f.sortable_name }}</a>
+            <div class="small">
+              {% if f.faculty_type == "GRADUATE" %}<span class="badge bg-info-subtle text-info-emphasis">Graduate</span>{% endif %}
+              {% if f.teaches_licensure_program %}<span class="badge bg-light text-dark border">Licensure</span>{% endif %}
+              {% if f.has_foreign_degree %}<span class="badge bg-light text-dark border">Foreign degree</span>{% endif %}
+              {% if f.on_study_leave %}<span class="badge bg-light text-dark border">Study leave</span>{% endif %}
+            </div>
+          </td>
+          <td><span class="badge bg-secondary-subtle text-secondary-emphasis">{{ f.department.code }}</span></td>
+          <td class="small">{{ f.get_academic_rank_display }}</td>
+          <td class="small">{{ f.get_employment_status_display }}</td>
+          <td class="small">{{ f.get_highest_degree_display }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="rate-bar flex-grow-1"><span class="bg-{{ f.rate_info.rate|rate_color }}" style="width:{{ f.rate_info.rate|floatformat:0 }}%"></span></div>
+              <span class="small fw-semibold text-nowrap">{{ f.rate_info.rate|floatformat:2 }}%</span>
+            </div>
+            <div class="small text-muted">{{ f.rate_info.complied }} / {{ f.rate_info.total }} complied</div>
+          </td>
+          <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'faculty:detail' f.pk %}">View</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8" class="text-center text-muted py-4">No faculty match the filters.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include "partials/_pagination.html" %}
+{% endblock %}

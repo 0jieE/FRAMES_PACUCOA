@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Audit log{% endblock %}
+{% block heading %}Audit log{% endblock %}
+{% block subheading %}{{ total }} entr{{ total|pluralize:"y,ies" }} · logins, uploads, downloads, validations, rule and user changes{% endblock %}
+{% block content %}
+{% include "partials/_filter_form.html" %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Object</th><th>Details</th><th>IP address</th></tr></thead>
+      <tbody>
+      {% for log in page_obj %}
+        <tr>
+          <td class="small text-nowrap">{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+          <td class="small">{% if log.user %}{{ log.user.username }}{% else %}<span class="text-muted">system</span>{% endif %}</td>
+          <td><span class="badge {% if log.action == 'LOGIN_FAILED' %}bg-danger{% elif log.action == 'VALIDATE' %}bg-success{% elif log.action == 'RULE_CHANGE' or log.action == 'USER_CHANGE' %}bg-warning text-dark{% elif log.action == 'DOWNLOAD' or log.action == 'PREVIEW' %}bg-info text-dark{% else %}bg-secondary{% endif %}">{{ log.get_action_display }}</span></td>
+          <td class="small text-nowrap">{{ log.model_name }}{% if log.object_id %} #{{ log.object_id }}{% endif %}</td>
+          <td class="small text-break" style="max-width:420px">{{ log.summary|truncatechars:180 }}</td>
+          <td class="small text-muted">{{ log.ip_address|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-4">No audit entries match the filters.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include "partials/_pagination.html" %}
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block heading %}{{ title }}{% endblock %}
+{% block subheading %}{% if is_create %}Faculty accounts also get a Faculty 201 profile.{% endif %}{% endblock %}
+{% block content %}
+<form method="post" novalidate>{% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}{{ e }}<br>{% endfor %}</div>{% endif %}
+  <div class="card mb-3">
+    <div class="card-header"><i class="bi bi-person"></i> Account</div>
+    <div class="card-body"><div class="row g-3">
+      {% include "accounts/_field.html" with field=form.username %}
+      {% include "accounts/_field.html" with field=form.first_name %}
+      {% include "accounts/_field.html" with field=form.last_name %}
+      {% include "accounts/_field.html" with field=form.email %}
+      {% include "accounts/_field.html" with field=form.role %}
+      {% include "accounts/_field.html" with field=form.department %}
+      {% include "accounts/_field.html" with field=form.password1 %}
+      {% include "accounts/_field.html" with field=form.password2 %}
+      {% include "accounts/_field.html" with field=form.is_active %}
+    </div></div>
+  </div>
+  {% if is_create %}
+  <div class="card mb-3" id="faculty-fields">
+    <div class="card-header"><i class="bi bi-person-badge"></i> Faculty profile <span class="small text-muted fw-normal">(required when role is Faculty Member)</span></div>
+    <div class="card-body"><div class="row g-3">
+      {% include "accounts/_field.html" with field=form.employee_no %}
+      {% include "accounts/_field.html" with field=form.faculty_department %}
+      {% include "accounts/_field.html" with field=form.middle_name %}
+      {% include "accounts/_field.html" with field=form.sex %}
+      {% include "accounts/_field.html" with field=form.employment_status %}
+      {% include "accounts/_field.html" with field=form.faculty_type %}
+      {% include "accounts/_field.html" with field=form.academic_rank %}
+      {% include "accounts/_field.html" with field=form.highest_degree %}
+      {% include "accounts/_field.html" with field=form.date_hired %}
+      {% include "accounts/_field.html" with field=form.contact_no %}
+      {% include "accounts/_field.html" with field=form.has_foreign_degree %}
+      {% include "accounts/_field.html" with field=form.teaches_licensure_program %}
+      {% include "accounts/_field.html" with field=form.on_study_leave %}
+    </div></div>
+  </div>
+  {% endif %}
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> Save</button>
+    <a class="btn btn-outline-secondary" href="{% if request.user.is_sysadmin %}{% url 'accounts:user_list' %}{% else %}{% url 'faculty:list' %}{% endif %}">Cancel</a>
+  </div>
+</form>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  const role = document.getElementById("id_role");
+  const box = document.getElementById("faculty-fields");
+  const dept = document.getElementById("id_department");
+  function sync() {
+    if (!role) return;
+    if (box) box.classList.toggle("opacity-50", role.value !== "FACULTY");
+    if (dept) dept.disabled = role.value !== "AREA_CHAIR";
+  }
+  if (role) { role.addEventListener("change", sync); sync(); }
+})();
+</script>
+{% endblock %}

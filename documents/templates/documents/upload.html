@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Upload document{% endblock %}
+{% block heading %}Upload 201 file / credential / evidence{% endblock %}
+{% block subheading %}Only requirements that apply to you are listed. Re-uploading creates a new version; older versions are kept.{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card"><div class="card-body">
+      <form method="post" enctype="multipart/form-data" id="upload-form" data-history-url="1" novalidate>{% csrf_token %}
+        {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}{{ e }}<br>{% endfor %}</div>{% endif %}
+        <div class="mb-3">
+          <label class="form-label fw-semibold" for="{{ form.requirement.id_for_label }}">Requirement <span class="text-danger">*</span></label>
+          <div class="{% if form.requirement.errors %}is-invalid-wrap{% endif %}">{{ form.requirement }}</div>
+          {% for e in form.requirement.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold" for="{{ form.file.id_for_label }}">File <span class="text-danger">*</span></label>
+          <div class="{% if form.file.errors %}is-invalid-wrap{% endif %}">{{ form.file }}</div>
+          <div class="form-text" id="file-note">{{ form.file.help_text }}</div>
+          {% for e in form.file.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" for="{{ form.date_issued.id_for_label }}">Date issued <span class="text-danger">*</span></label>
+            <div class="{% if form.date_issued.errors %}is-invalid-wrap{% endif %}">{{ form.date_issued }}</div>
+            {% for e in form.date_issued.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" for="{{ form.expiry_date.id_for_label }}">Expiry / validity date <span class="text-danger d-none" id="expiry-required-note">* required for this requirement</span></label>
+            <div class="{% if form.expiry_date.errors %}is-invalid-wrap{% endif %}">{{ form.expiry_date }}</div>
+            {% for e in form.expiry_date.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+        <div class="alert alert-light border small mt-3 mb-0"><i class="bi bi-shield-lock text-primary"></i> Files are encrypted before they are stored and can only be opened by you and authorized reviewers.</div>
+        <div class="mt-4 d-flex gap-2">
+          <button class="btn btn-primary" type="submit"><i class="bi bi-cloud-arrow-up"></i> Upload</button>
+          <a class="btn btn-outline-secondary" href="{% url 'faculty:my_profile' %}">Cancel</a>
+        </div>
+      </form>
+    </div></div>
+  </div>
+  <div class="col-lg-5">
+    {% if selected %}
+      <div class="card mb-3">
+        <div class="card-header">{{ selected.subarea.code }} · {{ selected.name }}</div>
+        <div class="card-body small">
+          <p class="mb-1"><strong>Documentary basis:</strong> {{ selected.documentary_basis|default:"—" }}</p>
+          <p class="mb-0"><strong>Expiry date:</strong> {{ selected.has_expiry|yesno:"Required,Not applicable" }}</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">Version history</div>
+        <ul class="list-group list-group-flush">
+          {% for d in history %}
+            <li class="list-group-item small">
+              <div class="d-flex justify-content-between"><a href="{% url 'documents:detail' d.pk %}">v{{ d.version_no }} · {{ d.original_filename }}</a>{% doc_status_badge d %}</div>
+              <div class="text-muted">{{ d.uploaded_at|date:"M d, Y H:i" }}{% if d.is_current %} · current{% endif %}</div>
+              {% with last=d.validations.first %}{% if last and last.remarks %}<div class="text-danger"><i class="bi bi-chat-left-text"></i> {{ last.remarks }}</div>{% endif %}{% endwith %}
+            </li>
+          {% empty %}
+            <li class="list-group-item small text-muted">No previous uploads for this requirement.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% else %}
+      <div class="card"><div class="card-body small text-muted">
+        <p><i class="bi bi-info-circle"></i> Accepted formats: PDF, JPG, PNG (max 10 MB). The file type is checked by extension <em>and</em> by content.</p>
+        <p class="mb-0">Select a requirement to see its documentary basis and your version history.</p>
+      </div></div>
+    {% endif %}
+  </div>
+</div>
+{{ expiry_requirement_ids|json_script:"expiry-requirement-ids" }}
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Department{% endblock %}
+{% block heading %}{% if department %}Edit {{ department.code }}{% else %}New department{% endif %}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:820px"><div class="card-body">
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "partials/_form_fields.html" %}
+    <div class="mt-4 d-flex gap-2">
+      <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> Save</button>
+      <a class="btn btn-outline-secondary" href="{% url 'faculty:department_list' %}">Cancel</a>
+    </div>
+  </form>
+</div></div>
+{% endblock %}

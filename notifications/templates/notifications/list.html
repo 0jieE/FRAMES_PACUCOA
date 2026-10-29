@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block heading %}Notifications{% endblock %}
+{% block subheading %}{{ unread_notification_count }} unread{% endblock %}
+{% block actions %}
+  {% if unread_notification_count %}
+  <form method="post" action="{% url 'notifications:mark_all_read' %}">{% csrf_token %}
+    <button class="btn btn-outline-primary" type="submit"><i class="bi bi-check2-all"></i> Mark all as read</button>
+  </form>
+  {% endif %}
+{% endblock %}
+{% block content %}
+<ul class="nav nav-pills mb-3 small">
+  <li class="nav-item"><a class="nav-link {% if show != 'unread' %}active{% endif %}" href="?show=all">All</a></li>
+  <li class="nav-item"><a class="nav-link {% if show == 'unread' %}active{% endif %}" href="?show=unread">Unread</a></li>
+</ul>
+<div class="card">
+  <ul class="list-group list-group-flush">
+    {% for n in page_obj %}
+      <li class="list-group-item d-flex gap-3 align-items-start {% if not n.is_read %}bg-primary-subtle bg-opacity-25{% endif %}">
+        <i class="bi {{ n.icon }} fs-5 text-primary mt-1"></i>
+        <div class="flex-grow-1">
+          <div class="{% if not n.is_read %}fw-semibold{% endif %}">{{ n.message }}</div>
+          <div class="small text-muted">{{ n.get_type_display }} · {{ n.created_at|date:"M d, Y H:i" }} ({{ n.created_at|timesince }} ago)</div>
+        </div>
+        <div class="d-flex gap-1">
+          {% if n.link %}
+            <form method="post" action="{% url 'notifications:mark_read' n.pk %}">{% csrf_token %}<input type="hidden" name="open" value="1">
+              <button class="btn btn-sm btn-outline-primary" type="submit">Open</button></form>
+          {% endif %}
+          {% if not n.is_read %}
+            <form method="post" action="{% url 'notifications:mark_read' n.pk %}">{% csrf_token %}
+              <button class="btn btn-sm btn-outline-secondary" type="submit" title="Mark as read"><i class="bi bi-check2"></i></button></form>
+          {% endif %}
+        </div>
+      </li>
+    {% empty %}
+      <li class="list-group-item text-center text-muted py-4">No notifications.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% include "partials/_pagination.html" %}
+{% endblock %}

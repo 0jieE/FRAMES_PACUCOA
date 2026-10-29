@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Validate document{% endblock %}
+{% block heading %}Validate: {{ requirement.name }}{% endblock %}
+{% block subheading %}{{ document.faculty.full_name }} · {{ document.faculty.department.code }} · v{{ document.version_no }} uploaded {{ document.uploaded_at|date:"M d, Y H:i" }}{% endblock %}
+{% block actions %}<a class="btn btn-outline-secondary" href="{% url 'documents:validation_queue' %}"><i class="bi bi-arrow-left"></i> Back to queue</a>{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-xl-7">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between"><span>Document preview</span><a class="small" href="{% url 'documents:download' document.pk %}"><i class="bi bi-download"></i> {{ document.original_filename }}</a></div>
+      <div class="card-body">
+        {% if document.is_pdf %}
+          <iframe class="preview-frame" src="{% url 'documents:preview' document.pk %}" title="Document preview"></iframe>
+        {% else %}
+          <img class="preview-image" src="{% url 'documents:preview' document.pk %}" alt="{{ document.original_filename }}">
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-5">
+    <div class="card mb-3">
+      <div class="card-header"><span class="badge bg-primary me-1">{{ requirement.subarea.code }}</span> Requirement</div>
+      <div class="card-body small">
+        <p class="fw-semibold mb-1">{{ requirement.name }}</p>
+        <p class="mb-2">{{ requirement.documentary_basis|default:"—" }}</p>
+        <dl class="row mb-0">
+          <dt class="col-5">Applicability</dt><dd class="col-7">{{ requirement.get_applicability_display }}</dd>
+          <dt class="col-5">Mandatory</dt><dd class="col-7">{{ requirement.mandatory_label }}</dd>
+          <dt class="col-5">Date issued</dt><dd class="col-7">{{ document.date_issued|date:"M d, Y"|default:"—" }}</dd>
+          <dt class="col-5">Expiry date</dt><dd class="col-7">{% if requirement.has_expiry %}{{ document.expiry_date|date:"M d, Y"|default:"missing" }}{% if document.expiry_date %} ({{ document.days_to_expiry }} days){% endif %}{% else %}Not applicable{% endif %}</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="card mb-3 border-primary">
+      <div class="card-header">Decision</div>
+      <div class="card-body">
+        <form method="post" id="validation-form" novalidate>{% csrf_token %}
+          {% include "partials/_form_fields.html" with col="col-12" %}
+          <div class="mt-3"><button class="btn btn-primary" type="submit"><i class="bi bi-send-check"></i> Submit decision</button></div>
+        </form>
+        <div class="small text-muted mt-2">The faculty member is notified in-app and by email.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">Previous versions</div>
+      <ul class="list-group list-group-flush">
+        {% for v in history %}
+          <li class="list-group-item small">
+            <div class="d-flex justify-content-between"><a href="{% url 'documents:detail' v.pk %}">v{{ v.version_no }} · {{ v.uploaded_at|date:"M d, Y" }}</a>{% doc_status_badge v %}</div>
+            {% for val in v.validations.all %}<div class="text-muted">{{ val.get_decision_display }} by {{ val.validated_by|default:"—" }}{% if val.remarks %}: “{{ val.remarks }}”{% endif %}</div>{% endfor %}
+          </li>
+        {% empty %}
+          <li class="list-group-item small text-muted">This is the first version.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
